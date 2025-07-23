@@ -31,10 +31,10 @@ def main(args):
     subjects = [x.split(".")[0] for x in mat_files]
 
     os.makedirs(args.output_dir, exist_ok=True)
-    os.makedirs(os.path.join(args.output_dir, "EEG"), exist_ok=True)
-    os.makedirs(os.path.join(args.output_dir, "AUDIO"), exist_ok=True)
+    os.makedirs(os.path.join(args.output_dir, "eeg"), exist_ok=True)
+    os.makedirs(os.path.join(args.output_dir, "audio"), exist_ok=True)
     
-    shutil.copytree("AUDIO", os.path.join(args.output_dir, "AUDIO"), dirs_exist_ok=True)
+    shutil.copytree("AUDIO", os.path.join(args.output_dir, "audio"), dirs_exist_ok=True)
     print("Copied AUDIO directory to output directory.")
 
     filtering =  args.high_cutoff is not None or args.low_cutoff is not None
