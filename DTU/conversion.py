@@ -89,7 +89,7 @@ def main(args):
             np.save(eeg_path, eeg_data[trial])
             time_to_sample = int(eeg_data[trial].shape[0] - (mat["data"].fsample.eeg * args.sample_length))
             for j in range(0, time_to_sample, args.sample_spacing * mat["data"].fsample.eeg):
-                output.append([split, i + 1, trial + 1, attn_wav, j, 0, int_wav, j, 0])
+                output.append([split, i + 1, trial + 1, attn_wav, j, 0, int_wav, j, 0, j + args.sample_length])
     np.savetxt(os.path.join(args.output_dir, "mix.csv"), output, fmt="%s", delimiter=",")
 
 if __name__ == "__main__":
