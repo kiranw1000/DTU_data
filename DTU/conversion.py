@@ -85,7 +85,7 @@ def main(args):
                 attn_wav, int_wav = wav_m, wav_f
             else:
                 attn_wav, int_wav = wav_f, wav_m
-            eeg_path = os.path.join(args.output_dir, "EEG", f"{subject}Tra{trial+1}.npy")
+            eeg_path = os.path.join(args.output_dir, "eeg", f"{subject}Tra{trial+1}.npy")
             np.save(eeg_path, eeg_data[trial])
             time_to_sample = int(eeg_data[trial].shape[0] - (mat["data"].fsample.eeg * args.sample_length))
             for j in range(0, time_to_sample, args.sample_spacing * mat["data"].fsample.eeg):
