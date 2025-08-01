@@ -59,8 +59,8 @@ def main(args):
         # Filter and resample EEG data if specified
         fs = mat["data"].fsample.eeg
         if filtering:
-            low = args.low_cutoff / fs
-            high = args.high_cutoff / fs
+            low = 0 if args.low_cutoff is None else args.low_cutoff / fs
+            high = 1 if args.high_cutoff is None else args.high_cutoff / fs
             if low <= 0:
                 ftype = 'lowpass'
                 cutoffs = [high]
