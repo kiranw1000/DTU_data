@@ -3,7 +3,7 @@ import scipy.io as sio
 import pandas as pd
 
 def split_eeg(mat: sio.matlab.mio5_params.mat_struct, expinfo: pd.DataFrame, wavMinLength: int = 50):
-    """Splits the EEG data insto samples based on the attended speaker.
+    """Splits the EEG data into samples based on the attended speaker.
 
     Args:
         mat (sio.matlab.mio5_params.mat_struct): The EEG data structure.
