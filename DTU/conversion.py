@@ -100,11 +100,15 @@ def main(args):
     test_trials = math.floor(args.test_split * num_trials)
     train_trials = num_trials - val_trials - test_trials
     print(f"Total trials: {num_trials}, Train: {train_trials}, Val: {val_trials}, Test: {test_trials}")
-
+    
+    trial_dict = {}
     for split, number in tqdm.tqdm({"train": train_trials, "val": val_trials, "test": test_trials}.items(), desc="Assigning splits", position=2, leave=False):
         selected_trials = random.sample(trials, number)
-        output.loc[output["subject"].isin([x[0] for x in selected_trials]) & output["trial"].isin([x[1] for x in selected_trials]), "split"] = split
         trials = [x for x in trials if x not in selected_trials]
+        trial_dict.update({x: split for x in selected_trials})
+    output.reset_index(drop=True, inplace=True)
+    for i, row in tqdm.tqdm(output.iterrows(), desc="Assigning splits", position=2, leave=False):
+        output.at[i, "split"] = trial_dict[(row["subject"], row["trial"])]
 
     output.to_csv(os.path.join(args.output_dir, "mix.csv"), index=False, header=False)
 
