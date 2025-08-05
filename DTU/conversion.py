@@ -93,7 +93,7 @@ def main(args):
             eeg_path = os.path.join(args.output_dir, "eeg", f"{subject}Tra{trial+1}.npy")
             np.save(eeg_path, eeg_data[trial])
             time_to_sample = int((eeg_data[trial].shape[0]/mat["data"].fsample.eeg)  - args.sample_length)
-            for j in range(0, time_to_sample, args.sample_spacing):
+            for j in range(0, time_to_sample, int(args.sample_spacing)):
                 output = pd.concat([output, pd.DataFrame([["",i+1, trial+1, attn_wav, j, "", int_wav, j, 0, args.sample_length]], columns=output.columns)])
     num_trials = len(trials)
     val_trials = math.floor(args.val_split * num_trials)
