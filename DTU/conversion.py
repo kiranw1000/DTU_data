@@ -74,7 +74,8 @@ def main(args):
                 else:
                     ftype = 'bandpass'
                     cutoffs = [low, high]
-                print(f"Filtering EEG data with {ftype} filter: {cutoffs}")
+                if i == 0:
+                    print(f"Filtering EEG data with {ftype} filter: {cutoffs}")
                 sos = signal.butter(4, cutoffs, btype=ftype, output='sos')
                 eeg_data = signal.sosfiltfilt(sos, eeg_data, axis=1)
             if resampling:
