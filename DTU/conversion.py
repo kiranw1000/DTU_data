@@ -95,7 +95,7 @@ def main(args):
             np.save(eeg_path, eeg_data[trial])
             time_to_sample = int((eeg_data[trial].shape[0]/mat["data"].fsample.eeg)  - args.sample_length)
             for j in np.arange(0, time_to_sample, args.sample_spacing):
-                output = pd.concat([output, pd.DataFrame([["",i+1, trial+1, attn_wav, j, "", int_wav, j, 0, args.sample_length]], columns=output.columns)])
+                output = pd.concat([output, pd.DataFrame([["",i+1, trial+1, attn_wav, j, "", int_wav, j, 0, args.sample_length_mean]], columns=output.columns)])
     num_trials = len(trials)
     val_trials = math.floor(args.val_split * num_trials)
     test_trials = math.floor(args.test_split * num_trials)
@@ -110,6 +110,9 @@ def main(args):
     output.reset_index(drop=True, inplace=True)
     for i, row in tqdm.tqdm(output.iterrows(), desc="Assigning splits", position=2, leave=False):
         output.at[i, "split"] = trial_dict[(row["subject"], row["trial"])]
+    if args.sample_length_std > 0:
+        output["length"] = np.random.normal(args.sample_length_mean, args.sample_length_std, size=len(output))
+        output["length"] = output["length"].clip(lower=args.min_length, upper=args.max_length)
 
     output.to_csv(os.path.join(args.output_dir, "mix.csv"), index=False, header=False)
 
@@ -118,7 +121,10 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", type=str, required=True, help="Directory containing DTU data")
     parser.add_argument("--output_dir", type=str, required=True, help="Directory to save converted data")
     parser.add_argument("--sample_spacing", type=float, default=1, help="Sample spacing for EEG data")
-    parser.add_argument("--sample_length", type=float, default=10, help="Length of each EEG sample in seconds")
+    parser.add_argument("--sample_length_mean", type=float, default=5.5, help="Mean length of each EEG sample in seconds")
+    parser.add_argument("--sample_length_std", type=float, default=0, help="Standard deviation of each EEG sample length in seconds")
+    parser.add_argument("--max_length", type=float, default=10, help="Maximum length of audio samples in seconds")
+    parser.add_argument("--min_length", type=float, default=1, help="Minimum length of audio samples in seconds")
     parser.add_argument("--val_split", type=float, default=.1, help="Number of subjects for validation")
     parser.add_argument("--test_split", type=float, default=.15, help="Number of subjects for testing")
     parser.add_argument("--high_cutoff", type=float, default=None, help="High cutoff frequency for filtering")
