@@ -17,6 +17,10 @@ test_subjects=2
 low_cutoff=None  # Low cutoff frequency for filtering (Hz)
 high_cutoff=None  # High cutoff frequency for filtering (Hz)
 resample_freq=128  # Resampling frequency (Hz), if None, no resampling is done
+sample_length_mean=5.5
+sample_length_std=2.6
+max_length=10
+min_length=1
 #####
 
 # Populate optional args
@@ -41,6 +45,18 @@ if [ "$test_subjects" != "None" ]; then
 fi
 if [ "$resample_freq" != "None" ]; then
     args="$args --resample_freq $resample_freq"
+fi
+if [ "$sample_length_mean" != "None" ]; then
+    args="$args --sample_length_mean $sample_length_mean"
+fi
+if [ "$sample_length_std" != "None" ]; then
+    args="$args --sample_length_std $sample_length_std"
+fi
+if [ "$max_length" != "None" ]; then
+    args="$args --max_length $max_length"
+fi
+if [ "$min_length" != "None" ]; then
+    args="$args --min_length $min_length"
 fi
 
 # Run the conversion script
