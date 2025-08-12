@@ -11,8 +11,8 @@ conda activate aspire
 data_dir=$(pwd)
 output_dir=$(pwd)/DTU  # Directory to save the converted data
 sample_spacing=1
-val_subjects=2
-test_subjects=2
+val_split=.15
+test_split=.1
 low_cutoff=None  # Low cutoff frequency for filtering (Hz)
 high_cutoff=None  # High cutoff frequency for filtering (Hz)
 resample_freq=128  # Resampling frequency (Hz), if None, no resampling is done
@@ -33,11 +33,11 @@ fi
 if [ "$sample_spacing" != "None" ]; then
     args="$args --sample_spacing $sample_spacing"
 fi
-if [ "$val_subjects" != "None" ]; then
-    args="$args --val_subjects $val_subjects"
+if [ "$val_split" != "None" ]; then
+    args="$args --val_split $val_split"
 fi
-if [ "$test_subjects" != "None" ]; then
-    args="$args --test_subjects $test_subjects"
+if [ "$test_split" != "None" ]; then
+    args="$args --test_split $test_split"
 fi
 if [ "$resample_freq" != "None" ]; then
     args="$args --resample_freq $resample_freq"
