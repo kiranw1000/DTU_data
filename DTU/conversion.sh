@@ -11,7 +11,6 @@ conda activate aspire
 data_dir=$(pwd)
 output_dir=$(pwd)/DTU  # Directory to save the converted data
 sample_spacing=1
-sample_length=10
 val_subjects=2
 test_subjects=2
 low_cutoff=None  # Low cutoff frequency for filtering (Hz)
@@ -33,9 +32,6 @@ if [ "$high_cutoff" != "None" ]; then
 fi
 if [ "$sample_spacing" != "None" ]; then
     args="$args --sample_spacing $sample_spacing"
-fi
-if [ "$sample_length" != "None" ]; then
-    args="$args --sample_length $sample_length"
 fi
 if [ "$val_subjects" != "None" ]; then
     args="$args --val_subjects $val_subjects"
