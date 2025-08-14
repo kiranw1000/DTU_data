@@ -48,7 +48,7 @@ def main(args):
     output = pd.DataFrame(columns=["split", "subject", "trial", "tgt_audio", "tgt_start", "", "int_audio", "int_start", "snr", "length"])
     trials = []
     # Process each subject
-    distribution = np.random.Generator()
+    distribution = np.random.default_rng(seed=42)  # For reproducibility
     for i, subject in tqdm.tqdm(enumerate(subjects[:num_subjects]), total=num_subjects, desc="Processing subjects", position=0, leave=True):
         # Load experiment info and EEG data
         expinfo = pd.read_csv(os.path.join(args.data_dir, 'EEG', f"{subject}.csv"))
