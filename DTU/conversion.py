@@ -97,7 +97,8 @@ def main(args):
             time_to_sample = int((eeg_data[trial].shape[0]/mat["data"].fsample.eeg)  - args.max_length)
             j = 0
             while j < time_to_sample:
-                sample_length = temp (temp:= distribution.normal(args.sample_length_mean, args.sample_length_std)) if j+temp < time_to_sample else time_to_sample - j
+                temp = distribution.normal(args.sample_length_mean, args.sample_length_std)
+                sample_length = temp if j+temp < time_to_sample else time_to_sample - j
                 output = pd.concat([output, pd.DataFrame([["",i+1, trial+1, attn_wav, j, "", int_wav, j, 0, sample_length]], columns=output.columns)])
                 j += sample_length
     num_trials = len(trials)
