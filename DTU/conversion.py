@@ -98,6 +98,7 @@ def main(args):
             j = 0
             while j < time_to_sample:
                 temp = distribution.normal(args.sample_length_mean, args.sample_length_std)
+                temp = max(min(temp, args.max_length), args.min_length)
                 sample_length = temp if j+temp < time_to_sample else time_to_sample - j
                 output = pd.concat([output, pd.DataFrame([["",i+1, trial+1, attn_wav, j, "", int_wav, j, 0, sample_length]], columns=output.columns)])
                 j += sample_length
@@ -115,8 +116,9 @@ def main(args):
     output.reset_index(drop=True, inplace=True)
     for i, row in tqdm.tqdm(output.iterrows(), desc="Assigning splits", position=2, leave=False):
         output.at[i, "split"] = trial_dict[(row["subject"], row["trial"])]
-        
-    output = output.sample(frac=1).reset_index(drop=True)
+
+    if args.randomized:
+        output = output.sample(frac=1).reset_index(drop=True)
 
     output.to_csv(os.path.join(args.output_dir, "mix.csv"), index=False, header=False)
 
@@ -135,6 +137,7 @@ if __name__ == "__main__":
     parser.add_argument("--resample_freq", type=int, default=None, help="Resampling frequency for EEG data")
     parser.add_argument("--subjects", type=int, default=None, help="Number of subjects to process")
     parser.add_argument("--mix_only", action='store_true', help="Only create mix file without processing audio or EEG data")
+    parser.add_argument("--randomized", action='store_true', help="Randomize the order of trials")
 
     args = parser.parse_args()
 
