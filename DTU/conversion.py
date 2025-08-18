@@ -122,6 +122,7 @@ def main(args):
         output = output.sample(frac=1).reset_index(drop=True)
 
     output.to_csv(os.path.join(args.output_dir, "mix.csv"), index=False, header=False)
+    print(f"Created {len(output)} samples and saved to {os.path.join(args.output_dir, 'mix.csv')}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="DTU Data Conversion")
