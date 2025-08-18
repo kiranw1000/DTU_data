@@ -48,7 +48,8 @@ def main(args):
     output = pd.DataFrame(columns=["split", "subject", "trial", "tgt_audio", "tgt_start", "", "int_audio", "int_start", "snr", "length"])
     trials = []
     # Process each subject
-    distribution = np.random.default_rng(seed=42)  # For reproducibility
+    length_distribution = np.random.default_rng(seed=args.seed)  # For reproducibility
+    spacing_distribution = np.random.default_rng(seed=args.seed + 1)  # Different seed for spacing
     for i, subject in tqdm.tqdm(enumerate(subjects[:num_subjects]), total=num_subjects, desc="Processing subjects", position=0, leave=True):
         # Load experiment info and EEG data
         expinfo = pd.read_csv(os.path.join(args.data_dir, 'EEG', f"{subject}.csv"))
@@ -97,11 +98,11 @@ def main(args):
             time_to_sample = int((eeg_data[trial].shape[0]/mat["data"].fsample.eeg)  - args.max_length)
             j = 0
             while j < time_to_sample:
-                temp = distribution.normal(args.sample_length_mean, args.sample_length_std)
+                temp = length_distribution.normal(args.sample_length_mean, args.sample_length_std)
                 temp = max(min(temp, args.max_length), args.min_length)
                 sample_length = temp if j+temp < time_to_sample else time_to_sample - j
                 output = pd.concat([output, pd.DataFrame([["",i+1, trial+1, attn_wav, j, "", int_wav, j, 0, sample_length]], columns=output.columns)])
-                j += sample_length
+                j += spacing_distribution.normal(args.spacing_mean, args.spacing_std) + sample_length
     num_trials = len(trials)
     val_trials = math.floor(args.val_split * num_trials)
     test_trials = math.floor(args.test_split * num_trials)
@@ -128,6 +129,9 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, required=True, help="Directory to save converted data")
     parser.add_argument("--sample_length_mean", type=float, default=5.5, help="Mean length of each EEG sample in seconds")
     parser.add_argument("--sample_length_std", type=float, default=0, help="Standard deviation of each EEG sample length in seconds")
+    parser.add_argument("--spacing_mean", type=float, default=.11, help="Mean spacing between audio samples in seconds")
+    parser.add_argument("--spacing_std", type=float, default=0, help="Standard deviation of spacing between audio samples in seconds")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     parser.add_argument("--max_length", type=float, default=10, help="Maximum length of audio samples in seconds")
     parser.add_argument("--min_length", type=float, default=1, help="Minimum length of audio samples in seconds")
     parser.add_argument("--val_split", type=float, default=.1, help="Number of subjects for validation")
