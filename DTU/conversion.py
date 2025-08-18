@@ -102,7 +102,7 @@ def main(args):
                 temp = max(min(temp, args.max_length), args.min_length)
                 sample_length = temp if j+temp < time_to_sample else time_to_sample - j
                 output = pd.concat([output, pd.DataFrame([["",i+1, trial+1, attn_wav, j, "", int_wav, j, 0, sample_length]], columns=output.columns)])
-                j += max(spacing_distribution.normal(args.spacing_mean, args.spacing_std) + sample_length, 1e-6)
+                j += max(spacing_distribution.normal(args.spacing_mean, args.spacing_std), 1e-6)
     num_trials = len(trials)
     val_trials = math.floor(args.val_split * num_trials)
     test_trials = math.floor(args.test_split * num_trials)
