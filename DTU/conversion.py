@@ -38,6 +38,17 @@ def main(args):
     os.makedirs(os.path.join(args.output_dir, "audio"), exist_ok=True)
     
     if not args.mix_only:
+        if args.resample_audio:
+            os.makedirs(os.path.join(args.output_dir, "audio"), exist_ok=True)
+            for file in tqdm.tqdm(os.listdir("AUDIO"), desc="Resampling audio files", position=0, leave=True):
+                if file.endswith(".wav"):
+                    wav, sr = sf.read(os.path.join("AUDIO", file))
+                    if sr != args.resample_audio:
+                        wav_resampled = signal.resample(wav, int(args.resample_audio * wav.shape[0] / sr))
+                        sf.write(os.path.join(args.output_dir, "audio", file), wav_resampled, args.resample_audio)
+                    else:
+                        shutil.copy2(os.path.join("AUDIO", file), os.path.join(args.output_dir, "audio", file))
+            print("Resampled audio files and saved to output directory.")
         shutil.copytree("AUDIO", os.path.join(args.output_dir, "audio"), dirs_exist_ok=True)
         print("Copied AUDIO directory to output directory.")
 
@@ -140,6 +151,7 @@ if __name__ == "__main__":
     parser.add_argument("--high_cutoff", type=float, default=None, help="High cutoff frequency for filtering")
     parser.add_argument("--low_cutoff", type=float, default=None, help="Low cutoff frequency for filtering")
     parser.add_argument("--resample_freq", type=int, default=None, help="Resampling frequency for EEG data")
+    parser.add_argument("--resample_audio", type=int, default=8000, help="Resampling frequency for audio data")
     parser.add_argument("--subjects", type=int, default=None, help="Number of subjects to process")
     parser.add_argument("--mix_only", action='store_true', help="Only create mix file without processing audio or EEG data")
     parser.add_argument("--randomized", action='store_true', help="Randomize the order of trials")
