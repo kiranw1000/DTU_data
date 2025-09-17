@@ -49,7 +49,8 @@ def main(args):
                     else:
                         shutil.copy2(os.path.join("AUDIO", file), os.path.join(args.output_dir, "audio", file))
             print("Resampled audio files and saved to output directory.")
-        shutil.copytree("AUDIO", os.path.join(args.output_dir, "audio"), dirs_exist_ok=True)
+        else:
+            shutil.copytree("AUDIO", os.path.join(args.output_dir, "audio"), dirs_exist_ok=True)
         print("Copied AUDIO directory to output directory.")
 
     filtering =  args.high_cutoff is not None or args.low_cutoff is not None
