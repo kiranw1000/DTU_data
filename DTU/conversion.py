@@ -56,85 +56,86 @@ def main(args):
     filtering =  args.high_cutoff is not None or args.low_cutoff is not None
     
     resampling = args.resample_freq is not None
-
-    output = pd.DataFrame(columns=["split", "subject", "trial", "tgt_audio", "tgt_start", "", "int_audio", "int_start", "snr", "length"])
-    trials = []
-    # Process each subject
-    length_distribution = np.random.default_rng(seed=args.seed)  # For reproducibility
-    spacing_distribution = np.random.default_rng(seed=args.seed + 1)  # Different seed for spacing
-    for i, subject in tqdm.tqdm(enumerate(subjects[:num_subjects]), total=num_subjects, desc="Processing subjects", position=0, leave=True):
-        # Load experiment info and EEG data
-        expinfo = pd.read_csv(os.path.join(args.data_dir, 'EEG', f"{subject}.csv"))
-        mat = sio.loadmat(os.path.join(args.data_dir, "EEG", f"{subject}.mat"), squeeze_me=True, struct_as_record=False)
-        wav_files = set([x for x in expinfo[["wavfile_male", "wavfile_female"]].values.flatten() if type(x) == str])
-        wav_files = [(sf.read(os.path.join(args.data_dir, "AUDIO", x))) for x in wav_files]
-        wavMinLength = min([x[0].shape[0] / x[1] for x in wav_files if x[0] is not None])
-        # Split EEG data into trials
-        eeg_data, indices = split_eeg(mat, expinfo, wavMinLength=wavMinLength)
-        if args.mix_only:
-            pass
-        else:
-            # Filter and resample EEG data if specified
-            fs = mat["data"].fsample.eeg
-            if filtering:
-                low = 0 if args.low_cutoff is None else args.low_cutoff / fs
-                high = 1 if args.high_cutoff is None else args.high_cutoff / fs
-                if low <= 0:
-                    ftype = 'lowpass'
-                    cutoffs = [high]
-                elif high >= 1:
-                    ftype = 'highpass'
-                    cutoffs = [low]
-                else:
-                    ftype = 'bandpass'
-                    cutoffs = [low, high]
-                if i == 0:
-                    print(f"Filtering EEG data with {ftype} filter: {cutoffs}")
-                sos = signal.butter(4, cutoffs, btype=ftype, output='sos')
-                eeg_data = signal.sosfiltfilt(sos, eeg_data, axis=1)
-            if resampling:
-                resampled_size = int(args.resample_freq * eeg_data.shape[1] / fs)
-                eeg_data = signal.resample(eeg_data, resampled_size, axis=1)
-                print(f"EEG data shape after resampling: {eeg_data.shape}")
-        expinfo = expinfo.iloc[indices]
-        # Populate mix file which specifies audio and EEG data correspondence
-        for trial in tqdm.tqdm(range(eeg_data.shape[0]), desc="Processing trials", position=1, leave=False):
-            trials.append((i+1, trial + 1))
-            wav_m, wav_f = expinfo.iloc[trial][["wavfile_male", "wavfile_female"]].values
-            if expinfo.iloc[trial]["attend_mf"] == 1:
-                attn_wav, int_wav = wav_m, wav_f
-            else:
-                attn_wav, int_wav = wav_f, wav_m
-            eeg_path = os.path.join(args.output_dir, "eeg", f"{subject}Tra{trial+1}.npy")
-            np.save(eeg_path, eeg_data[trial])
-            time_to_sample = int((eeg_data[trial].shape[0]/mat["data"].fsample.eeg)  - args.max_length)
-            j = 0
-            while time_to_sample - j > .1:
-                temp = length_distribution.normal(args.sample_length_mean, args.sample_length_std)
-                temp = max(min(temp, args.max_length), args.min_length)
-                sample_length = temp if j+temp < time_to_sample else time_to_sample - j
-                output = pd.concat([output, pd.DataFrame([["",i+1, trial+1, attn_wav, j, "", int_wav, j, 0, sample_length]], columns=output.columns)])
-                j += max(spacing_distribution.normal(args.spacing_mean, args.spacing_std), .1)
-    num_trials = len(trials)
-    val_trials = math.floor(args.val_split * num_trials)
-    test_trials = math.floor(args.test_split * num_trials)
-    train_trials = num_trials - val_trials - test_trials
-    print(f"Total trials: {num_trials}, Train: {train_trials}, Val: {val_trials}, Test: {test_trials}")
     
-    trial_dict = {}
-    for split, number in tqdm.tqdm({"train": train_trials, "val": val_trials, "test": test_trials}.items(), desc="Assigning splits", position=2, leave=False):
-        selected_trials = random.sample(trials, number)
-        trials = [x for x in trials if x not in selected_trials]
-        trial_dict.update({x: split for x in selected_trials})
-    output.reset_index(drop=True, inplace=True)
-    for i, row in tqdm.tqdm(output.iterrows(), desc="Assigning splits", position=2, leave=False):
-        output.at[i, "split"] = trial_dict[(row["subject"], row["trial"])]
+    if not args.audio_only:
+        output = pd.DataFrame(columns=["split", "subject", "trial", "tgt_audio", "tgt_start", "", "int_audio", "int_start", "snr", "length"])
+        trials = []
+        # Process each subject
+        length_distribution = np.random.default_rng(seed=args.seed)  # For reproducibility
+        spacing_distribution = np.random.default_rng(seed=args.seed + 1)  # Different seed for spacing
+        for i, subject in tqdm.tqdm(enumerate(subjects[:num_subjects]), total=num_subjects, desc="Processing subjects", position=0, leave=True):
+            # Load experiment info and EEG data
+            expinfo = pd.read_csv(os.path.join(args.data_dir, 'EEG', f"{subject}.csv"))
+            mat = sio.loadmat(os.path.join(args.data_dir, "EEG", f"{subject}.mat"), squeeze_me=True, struct_as_record=False)
+            wav_files = set([x for x in expinfo[["wavfile_male", "wavfile_female"]].values.flatten() if type(x) == str])
+            wav_files = [(sf.read(os.path.join(args.data_dir, "AUDIO", x))) for x in wav_files]
+            wavMinLength = min([x[0].shape[0] / x[1] for x in wav_files if x[0] is not None])
+            # Split EEG data into trials
+            eeg_data, indices = split_eeg(mat, expinfo, wavMinLength=wavMinLength)
+            if args.mix_only:
+                pass
+            else:
+                # Filter and resample EEG data if specified
+                fs = mat["data"].fsample.eeg
+                if filtering:
+                    low = 0 if args.low_cutoff is None else args.low_cutoff / fs
+                    high = 1 if args.high_cutoff is None else args.high_cutoff / fs
+                    if low <= 0:
+                        ftype = 'lowpass'
+                        cutoffs = [high]
+                    elif high >= 1:
+                        ftype = 'highpass'
+                        cutoffs = [low]
+                    else:
+                        ftype = 'bandpass'
+                        cutoffs = [low, high]
+                    if i == 0:
+                        print(f"Filtering EEG data with {ftype} filter: {cutoffs}")
+                    sos = signal.butter(4, cutoffs, btype=ftype, output='sos')
+                    eeg_data = signal.sosfiltfilt(sos, eeg_data, axis=1)
+                if resampling:
+                    resampled_size = int(args.resample_freq * eeg_data.shape[1] / fs)
+                    eeg_data = signal.resample(eeg_data, resampled_size, axis=1)
+                    print(f"EEG data shape after resampling: {eeg_data.shape}")
+            expinfo = expinfo.iloc[indices]
+            # Populate mix file which specifies audio and EEG data correspondence
+            for trial in tqdm.tqdm(range(eeg_data.shape[0]), desc="Processing trials", position=1, leave=False):
+                trials.append((i+1, trial + 1))
+                wav_m, wav_f = expinfo.iloc[trial][["wavfile_male", "wavfile_female"]].values
+                if expinfo.iloc[trial]["attend_mf"] == 1:
+                    attn_wav, int_wav = wav_m, wav_f
+                else:
+                    attn_wav, int_wav = wav_f, wav_m
+                eeg_path = os.path.join(args.output_dir, "eeg", f"{subject}Tra{trial+1}.npy")
+                np.save(eeg_path, eeg_data[trial])
+                time_to_sample = int((eeg_data[trial].shape[0]/mat["data"].fsample.eeg)  - args.max_length)
+                j = 0
+                while time_to_sample - j > .1:
+                    temp = length_distribution.normal(args.sample_length_mean, args.sample_length_std)
+                    temp = max(min(temp, args.max_length), args.min_length)
+                    sample_length = temp if j+temp < time_to_sample else time_to_sample - j
+                    output = pd.concat([output, pd.DataFrame([["",i+1, trial+1, attn_wav, j, "", int_wav, j, 0, sample_length]], columns=output.columns)])
+                    j += max(spacing_distribution.normal(args.spacing_mean, args.spacing_std), .1)
+        num_trials = len(trials)
+        val_trials = math.floor(args.val_split * num_trials)
+        test_trials = math.floor(args.test_split * num_trials)
+        train_trials = num_trials - val_trials - test_trials
+        print(f"Total trials: {num_trials}, Train: {train_trials}, Val: {val_trials}, Test: {test_trials}")
+        
+        trial_dict = {}
+        for split, number in tqdm.tqdm({"train": train_trials, "val": val_trials, "test": test_trials}.items(), desc="Assigning splits", position=2, leave=False):
+            selected_trials = random.sample(trials, number)
+            trials = [x for x in trials if x not in selected_trials]
+            trial_dict.update({x: split for x in selected_trials})
+        output.reset_index(drop=True, inplace=True)
+        for i, row in tqdm.tqdm(output.iterrows(), desc="Assigning splits", position=2, leave=False):
+            output.at[i, "split"] = trial_dict[(row["subject"], row["trial"])]
 
-    if args.randomized:
-        output = output.sample(frac=1).reset_index(drop=True)
+        if args.randomized:
+            output = output.sample(frac=1).reset_index(drop=True)
 
-    output.to_csv(os.path.join(args.output_dir, "mix.csv"), index=False, header=False)
-    print(f"Created {len(output)} samples and saved to {os.path.join(args.output_dir, 'mix.csv')}")
+        output.to_csv(os.path.join(args.output_dir, "mix.csv"), index=False, header=False)
+        print(f"Created {len(output)} samples and saved to {os.path.join(args.output_dir, 'mix.csv')}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="DTU Data Conversion")
@@ -156,6 +157,7 @@ if __name__ == "__main__":
     parser.add_argument("--subjects", type=int, default=None, help="Number of subjects to process")
     parser.add_argument("--mix_only", action='store_true', help="Only create mix file without processing audio or EEG data")
     parser.add_argument("--randomized", action='store_true', help="Randomize the order of trials")
+    parser.add_argument("--audio_only", action='store_true', help="Only process audio files without EEG data")
 
     args = parser.parse_args()
 
