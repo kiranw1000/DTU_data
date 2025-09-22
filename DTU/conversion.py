@@ -32,6 +32,7 @@ def main(args):
         num_subjects = min(num_subjects, args.subjects)
         print(f"Limiting processing to {num_subjects} subjects as per the --subjects argument.")
     subjects = [x.split(".")[0] for x in mat_files]
+    subjects = sorted(subjects)
 
     os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(os.path.join(args.output_dir, "eeg"), exist_ok=True)
