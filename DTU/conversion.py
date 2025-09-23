@@ -68,6 +68,7 @@ def main(args):
             # Load experiment info and EEG data
             expinfo = pd.read_csv(os.path.join(args.data_dir, 'EEG', f"{subject}.csv"))
             mat = sio.loadmat(os.path.join(args.data_dir, "EEG", f"{subject}.mat"), squeeze_me=True, struct_as_record=False)
+            output_eeg_fs = args.resample_freq if resampling else mat['data'].fsample.eeg
             wav_files = set([x for x in expinfo[["wavfile_male", "wavfile_female"]].values.flatten() if type(x) == str])
             wav_files = [(sf.read(os.path.join(args.data_dir, "AUDIO", x))) for x in wav_files]
             wavMinLength = min([x[0].shape[0] / x[1] for x in wav_files if x[0] is not None])
@@ -95,7 +96,7 @@ def main(args):
                     sos = signal.butter(4, cutoffs, btype=ftype, output='sos')
                     eeg_data = signal.sosfiltfilt(sos, eeg_data, axis=1)
                 if resampling:
-                    resampled_size = int(args.resample_freq * eeg_data.shape[1] / fs)
+                    resampled_size = int(output_eeg_fs * eeg_data.shape[1] / fs)
                     eeg_data = signal.resample(eeg_data, resampled_size, axis=1)
                     print(f"EEG data shape after resampling: {eeg_data.shape}")
             expinfo = expinfo.iloc[indices]
@@ -109,7 +110,7 @@ def main(args):
                     attn_wav, int_wav = wav_f, wav_m
                 eeg_path = os.path.join(args.output_dir, "eeg", f"{subject}Tra{trial+1}.npy")
                 np.save(eeg_path, eeg_data[trial])
-                time_to_sample = int((eeg_data[trial].shape[0]/mat["data"].fsample.eeg)  - args.max_length)
+                time_to_sample = int((eeg_data[trial].shape[0]/output_eeg_fs)  - args.max_length)
                 j = 0
                 while time_to_sample - j > .1:
                     temp = length_distribution.normal(args.sample_length_mean, args.sample_length_std)
