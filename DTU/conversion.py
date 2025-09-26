@@ -92,9 +92,13 @@ def main(args):
                         ftype = 'bandpass'
                         cutoffs = [low, high]
                     if i == 0:
-                        print(f"Filtering EEG data with {ftype} filter: {cutoffs}")
-                    sos = signal.butter(4, cutoffs, btype=ftype, output='sos')
-                    eeg_data = signal.sosfiltfilt(sos, eeg_data, axis=1)
+                        print(f"Filtering EEG data with {ftype} filter: {args.filter_type} {cutoffs}")
+                    if args.filter_type == "butter":
+                        sos = signal.butter(4, cutoffs, btype=ftype, output='sos')
+                        eeg_data = signal.sosfiltfilt(sos, eeg_data, axis=1)
+                    elif args.filter_type == "fir":
+                        fir_coeff = signal.firwin(101, cutoffs, pass_zero=ftype)
+                        eeg_data = signal.filtfilt(fir_coeff, 1.0, eeg_data, axis=1)
                 if resampling:
                     resampled_size = int(output_eeg_fs * eeg_data.shape[1] / fs)
                     eeg_data = signal.resample(eeg_data, resampled_size, axis=1)
@@ -160,6 +164,7 @@ if __name__ == "__main__":
     parser.add_argument("--mix_only", action='store_true', help="Only create mix file without processing audio or EEG data")
     parser.add_argument("--randomized", action='store_true', help="Randomize the order of trials")
     parser.add_argument("--audio_only", action='store_true', help="Only process audio files without EEG data")
+    parser.add_argument("--filter_type", type=str, default="butter", choices=["butter", "fir"], help="Type of filter to use for EEG data")
 
     args = parser.parse_args()
 
