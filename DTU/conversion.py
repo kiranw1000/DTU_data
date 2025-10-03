@@ -60,7 +60,7 @@ def main(args):
     resampling = args.resample_freq is not None
 
     if args.generate_mix:
-        output = pd.DataFrame(columns=["split", "subject", "trial", "tgt_audio", "tgt_start", "", "int_audio", "int_start", "snr", "length"])
+        output = []
         trials = []
         # Process each subject
         length_distribution = np.random.default_rng(seed=args.seed)  # For reproducibility
@@ -74,11 +74,20 @@ def main(args):
             ch_types = ['eeg'] * 66 + ['eog'] * 6 + ['misc']
             info = mne.create_info(ch_names=channels.tolist(), sfreq=sfreq, ch_types=ch_types)
             raw = mne.io.RawArray(mat['data'].eeg.T, info)
+            relevant_event_locations = mat['data'].event.eeg.value!=191
+            relevant_events = mat['data'].event.eeg.sample[relevant_event_locations]
+            relevant_event_codes = mat['data'].event.eeg.value[relevant_event_locations]
+            has_wav_file = expinfo.wavfile_female.astype(str)!='nan'
+            relevant_events = relevant_events[has_wav_file]
+            relevant_event_codes = relevant_event_codes[has_wav_file]
+            relevant_events = np.hstack([[relevant_events, np.zeros_like(relevant_events), relevant_event_codes]])
+            # Split EEG data into trials
+            raw = mne.Epochs(raw, relevant_events.T.astype(int), tmin=0.0, tmax=args.trial_length-(1/sfreq), baseline=None, preload=True)
+            output_eeg_fs = args.resample_freq if resampling else sfreq
             if args.generate_eeg:
                 # Rereference EEG data if specified
                 if args.rereference:
                     raw = raw.set_eeg_reference(args.rereference)
-                output_eeg_fs = args.resample_freq if resampling else sfreq
                 # Filter and resample EEG data if specified
                 if filtering:
                     if i == 0:
@@ -88,12 +97,7 @@ def main(args):
                     if i == 0:
                         print(f"Resampling EEG data to {args.resample_freq} Hz")
                     raw = raw.resample(args.resample_freq)
-            # Split EEG data into trials
-            wav_files = set([x for x in expinfo[["wavfile_male", "wavfile_female"]].values.flatten() if type(x) == str])
-            wav_files = [(sf.read(os.path.join(args.data_dir, "AUDIO", x))) for x in wav_files]
-            wavMinLength = min([x[0].shape[0] / x[1] for x in wav_files if x[0] is not None])
-            eeg_data, indices = split_eeg(raw.get_data().T, mat['data'].event.eeg.sample, mat['data'].event.eeg.value, expinfo, wavMinLength=wavMinLength)
-            expinfo = expinfo.iloc[indices]
+            eeg_data = raw.get_data()
             # Populate mix file which specifies audio and EEG data correspondence
             for trial in tqdm.tqdm(range(eeg_data.shape[0]), desc="Processing trials", position=1, leave=False):
                 trials.append((i+1, trial + 1))
@@ -103,20 +107,22 @@ def main(args):
                 else:
                     attn_wav, int_wav = wav_f, wav_m
                 eeg_path = os.path.join(args.output_dir, "eeg", f"{subject}Tra{trial+1}.npy")
-                np.save(eeg_path, eeg_data[trial])
-                time_to_sample = int((eeg_data[trial].shape[0]/output_eeg_fs)  - args.max_length)
+                np.save(eeg_path, eeg_data[trial].T)
+                time_to_sample = int((eeg_data[trial].shape[1]/output_eeg_fs)  - args.max_length)
                 j = 0
                 while time_to_sample - j > .1:
                     temp = length_distribution.normal(args.sample_length_mean, args.sample_length_std)
                     temp = max(min(temp, args.max_length), args.min_length)
                     sample_length = temp if j+temp < time_to_sample else time_to_sample - j
-                    output = pd.concat([output, pd.DataFrame([["",i+1, trial+1, attn_wav, j, "", int_wav, j, 0, sample_length]], columns=output.columns)])
+                    output.append(["",i+1, trial+1, attn_wav, j, "", int_wav, j, 0, sample_length])
                     j += max(spacing_distribution.normal(args.spacing_mean, args.spacing_std), .1)
         num_trials = len(trials)
         val_trials = math.floor(args.val_split * num_trials)
         test_trials = math.floor(args.test_split * num_trials)
         train_trials = num_trials - val_trials - test_trials
         print(f"Total trials: {num_trials}, Train: {train_trials}, Val: {val_trials}, Test: {test_trials}")
+        
+        output = pd.DataFrame(output, columns=["split", "subject", "trial", "tgt_audio", "tgt_start", "", "int_audio", "int_start", "snr", "length"])
         
         trial_dict = {}
         for split, number in tqdm.tqdm({"train": train_trials, "val": val_trials, "test": test_trials}.items(), desc="Assigning splits", position=2, leave=False):
@@ -157,6 +163,7 @@ if __name__ == "__main__":
     parser.add_argument("--generate_eeg", default=True, help="Process EEG files")
     parser.add_argument("--filter_type", type=str, default="fir", choices=["iir", "fir"], help="Type of filter to use for EEG data")
     parser.add_argument("--rereference", type=str, default="average", help="Re-reference EEG data to specified channel")
+    parser.add_argument("--trial_length", default=50, type=float, help="Length of each trial in seconds")
 
     args = parser.parse_args()
 
