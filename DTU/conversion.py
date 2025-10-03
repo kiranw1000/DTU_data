@@ -1,4 +1,4 @@
-import argparse, os, shutil, tqdm, random, math
+import argparse, os, shutil, tqdm, random, math, mne
 import scipy.io as sio
 import pandas as pd
 import numpy as np
@@ -14,6 +14,7 @@ def main(args):
     print("Sample Length Std:", args.sample_length_std)
     print("Validation Split:", args.val_split)
     print("Test Split:", args.test_split)
+    print("Rereference Method:", args.rereference)
     print("Low Cutoff Frequency:", args.low_cutoff)
     print("High Cutoff Frequency:", args.high_cutoff)
     print("Resampling Frequency:", args.resample_freq)
@@ -37,8 +38,8 @@ def main(args):
     os.makedirs(args.output_dir, exist_ok=True)
     os.makedirs(os.path.join(args.output_dir, "eeg"), exist_ok=True)
     os.makedirs(os.path.join(args.output_dir, "audio"), exist_ok=True)
-    
-    if not args.mix_only:
+
+    if args.generate_audio:
         if args.resample_audio:
             os.makedirs(os.path.join(args.output_dir, "audio"), exist_ok=True)
             for file in tqdm.tqdm(os.listdir("AUDIO"), desc="Resampling audio files", position=0, leave=True):
@@ -57,8 +58,8 @@ def main(args):
     filtering =  args.high_cutoff is not None or args.low_cutoff is not None
     
     resampling = args.resample_freq is not None
-    
-    if not args.audio_only:
+
+    if args.generate_mix:
         output = pd.DataFrame(columns=["split", "subject", "trial", "tgt_audio", "tgt_start", "", "int_audio", "int_start", "snr", "length"])
         trials = []
         # Process each subject
@@ -68,41 +69,30 @@ def main(args):
             # Load experiment info and EEG data
             expinfo = pd.read_csv(os.path.join(args.data_dir, 'EEG', f"{subject}.csv"))
             mat = sio.loadmat(os.path.join(args.data_dir, "EEG", f"{subject}.mat"), squeeze_me=True, struct_as_record=False)
-            output_eeg_fs = args.resample_freq if resampling else mat['data'].fsample.eeg
+            channels = mat['data'].dim.chan.eeg
+            sfreq = mat['data'].fsample.eeg
+            ch_types = ['eeg'] * 66 + ['eog'] * 6 + ['misc']
+            info = mne.create_info(ch_names=channels.tolist(), sfreq=sfreq, ch_types=ch_types)
+            raw = mne.io.RawArray(mat['data'].eeg.T, info)
+            if args.generate_eeg:
+                # Rereference EEG data if specified
+                if args.rereference:
+                    raw = raw.set_eeg_reference(args.rereference)
+                output_eeg_fs = args.resample_freq if resampling else sfreq
+                # Filter and resample EEG data if specified
+                if filtering:
+                    if i == 0:
+                        print(f"Filtering EEG data with filter: {args.filter_type} low:{args.low_cutoff} high:{args.high_cutoff}")
+                    raw = raw.filter(l_freq=args.low_cutoff, h_freq=args.high_cutoff, method=args.filter_type)
+                if resampling:
+                    if i == 0:
+                        print(f"Resampling EEG data to {args.resample_freq} Hz")
+                    raw = raw.resample(args.resample_freq)
+            # Split EEG data into trials
             wav_files = set([x for x in expinfo[["wavfile_male", "wavfile_female"]].values.flatten() if type(x) == str])
             wav_files = [(sf.read(os.path.join(args.data_dir, "AUDIO", x))) for x in wav_files]
             wavMinLength = min([x[0].shape[0] / x[1] for x in wav_files if x[0] is not None])
-            # Split EEG data into trials
-            eeg_data, indices = split_eeg(mat, expinfo, wavMinLength=wavMinLength)
-            if args.mix_only:
-                pass
-            else:
-                # Filter and resample EEG data if specified
-                fs = mat["data"].fsample.eeg
-                if filtering:
-                    low = 0 if args.low_cutoff is None else args.low_cutoff / fs
-                    high = 1 if args.high_cutoff is None else args.high_cutoff / fs
-                    if low <= 0:
-                        ftype = 'lowpass'
-                        cutoffs = [high]
-                    elif high >= 1:
-                        ftype = 'highpass'
-                        cutoffs = [low]
-                    else:
-                        ftype = 'bandpass'
-                        cutoffs = [low, high]
-                    if i == 0:
-                        print(f"Filtering EEG data with {ftype} filter: {args.filter_type} {cutoffs}")
-                    if args.filter_type == "butter":
-                        sos = signal.butter(4, cutoffs, btype=ftype, output='sos')
-                        eeg_data = signal.sosfiltfilt(sos, eeg_data, axis=1)
-                    elif args.filter_type == "fir":
-                        fir_coeff = signal.firwin(101, cutoffs, pass_zero=ftype)
-                        eeg_data = signal.filtfilt(fir_coeff, 1.0, eeg_data, axis=1)
-                if resampling:
-                    resampled_size = int(output_eeg_fs * eeg_data.shape[1] / fs)
-                    eeg_data = signal.resample(eeg_data, resampled_size, axis=1)
-                    print(f"EEG data shape after resampling: {eeg_data.shape}")
+            eeg_data, indices = split_eeg(raw.get_data().T, mat['data'].event.eeg.sample, mat['data'].event.eeg.value, expinfo, wavMinLength=wavMinLength)
             expinfo = expinfo.iloc[indices]
             # Populate mix file which specifies audio and EEG data correspondence
             for trial in tqdm.tqdm(range(eeg_data.shape[0]), desc="Processing trials", position=1, leave=False):
@@ -161,10 +151,12 @@ if __name__ == "__main__":
     parser.add_argument("--resample_freq", type=int, default=None, help="Resampling frequency for EEG data")
     parser.add_argument("--resample_audio", type=int, default=8000, help="Resampling frequency for audio data")
     parser.add_argument("--subjects", type=int, default=None, help="Number of subjects to process")
-    parser.add_argument("--mix_only", action='store_true', help="Only create mix file without processing audio or EEG data")
     parser.add_argument("--randomized", action='store_true', help="Randomize the order of trials")
-    parser.add_argument("--audio_only", action='store_true', help="Only process audio files without EEG data")
-    parser.add_argument("--filter_type", type=str, default="butter", choices=["butter", "fir"], help="Type of filter to use for EEG data")
+    parser.add_argument("--generate_mix", default=True, help="Create mix file")
+    parser.add_argument("--generate_audio", default=True, help="Process audio files")
+    parser.add_argument("--generate_eeg", default=True, help="Process EEG files")
+    parser.add_argument("--filter_type", type=str, default="fir", choices=["iir", "fir"], help="Type of filter to use for EEG data")
+    parser.add_argument("--rereference", type=str, default="average", help="Re-reference EEG data to specified channel")
 
     args = parser.parse_args()
 
