@@ -58,6 +58,8 @@ def main(args):
     filtering =  args.high_cutoff is not None or args.low_cutoff is not None
     
     resampling = args.resample_freq is not None
+    
+    snr_aug = args.SNR_max != 0 or args.SNR_min != 0
 
     if args.generate_mix:
         output = []
@@ -65,6 +67,7 @@ def main(args):
         # Process each subject
         length_distribution = np.random.default_rng(seed=args.seed)  # For reproducibility
         spacing_distribution = np.random.default_rng(seed=args.seed + 1)  # Different seed for spacing
+        snr_distribution = np.random.default_rng(seed=args.seed + 2)  # Different seed for SNR
         for i, subject in tqdm.tqdm(enumerate(subjects[:num_subjects]), total=num_subjects, desc="Processing subjects", position=0, leave=True):
             # Load experiment info and EEG data
             expinfo = pd.read_csv(os.path.join(args.data_dir, 'EEG', f"{subject}.csv"))
@@ -131,7 +134,11 @@ def main(args):
             trial_dict.update({x: split for x in selected_trials})
         output.reset_index(drop=True, inplace=True)
         for i, row in tqdm.tqdm(output.iterrows(), desc="Assigning splits", position=2, leave=False):
-            output.at[i, "split"] = trial_dict[(row["subject"], row["trial"])]
+            split = trial_dict[(row["subject"], row["trial"])]
+            output.at[i, "split"] = split
+            if split == "train" and snr_aug:
+                snr = snr_distribution.uniform(args.SNR_min, args.SNR_max)
+                output.at[i, "snr"] = snr
 
         if args.randomized:
             output = output.sample(frac=1).reset_index(drop=True)
@@ -164,6 +171,8 @@ if __name__ == "__main__":
     parser.add_argument("--filter_type", type=str, default="fir", choices=["iir", "fir"], help="Type of filter to use for EEG data")
     parser.add_argument("--rereference", type=str, default="average", help="Re-reference EEG data to specified channel")
     parser.add_argument("--trial_length", default=50, type=float, help="Length of each trial in seconds")
+    parser.add_argument("--SNR_max", type=float, default=0, help="Maximum SNR for mixed audio")
+    parser.add_argument("--SNR_min", type=float, default=0, help="Minimum SNR for mixed audio")
 
     args = parser.parse_args()
 
