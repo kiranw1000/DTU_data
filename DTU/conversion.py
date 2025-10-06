@@ -77,9 +77,9 @@ def main(args):
             ch_types = ['eeg'] * 66 + ['eog'] * 6 + ['misc']
             info = mne.create_info(ch_names=channels.tolist(), sfreq=sfreq, ch_types=ch_types)
             raw = mne.io.RawArray(mat['data'].eeg.T, info)
-            relevant_event_locations = mat['data'].event.eeg.value!=191
-            relevant_events = mat['data'].event.eeg.sample[relevant_event_locations]
-            relevant_event_codes = mat['data'].event.eeg.value[relevant_event_locations]
+            relevant_event_locations = mat['data'].event.eeg.value[::2]!=191
+            relevant_events = mat['data'].event.eeg.sample[::2][relevant_event_locations]
+            relevant_event_codes = mat['data'].event.eeg.value[::2][relevant_event_locations]
             has_wav_file = expinfo.wavfile_female.astype(str)!='nan'
             size_dif = relevant_events.shape[0] - has_wav_file.shape[0]
             if size_dif > 0:
