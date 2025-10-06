@@ -81,6 +81,10 @@ def main(args):
             relevant_events = mat['data'].event.eeg.sample[relevant_event_locations]
             relevant_event_codes = mat['data'].event.eeg.value[relevant_event_locations]
             has_wav_file = expinfo.wavfile_female.astype(str)!='nan'
+            size_dif = relevant_events.shape[0] - has_wav_file.shape[0]
+            if size_dif > 0:
+                print(f"Warning: Subject {subject} has {size_dif} more events than trials in expinfo. Adjusting accordingly.")
+                has_wav_file = np.hstack((has_wav_file, np.array([False]*size_dif)))
             relevant_events = relevant_events[has_wav_file]
             relevant_event_codes = relevant_event_codes[has_wav_file]
             relevant_events = np.hstack([[relevant_events, np.zeros_like(relevant_events), relevant_event_codes]])
