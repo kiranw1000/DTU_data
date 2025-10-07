@@ -105,6 +105,8 @@ def main(args):
                     if i == 0:
                         print(f"Resampling EEG data to {args.resample_freq} Hz")
                     raw = raw.resample(args.resample_freq)
+            if not args.use_eog:
+                raw.pick(picks='eeg', exclude = ["EXG1","EXG2"] if not args.use_mastoid else "bad")
             eeg_data = raw.get_data()
             # Populate mix file which specifies audio and EEG data correspondence
             for trial in tqdm.tqdm(range(eeg_data.shape[0]), desc="Processing trials", position=1, leave=False):
@@ -178,6 +180,8 @@ if __name__ == "__main__":
     parser.add_argument("--trial_length", default=50, type=float, help="Length of each trial in seconds")
     parser.add_argument("--SNR_max", type=float, default=0, help="Maximum SNR for mixed audio")
     parser.add_argument("--SNR_min", type=float, default=0, help="Minimum SNR for mixed audio")
+    parser.add_argument("--use_eog", action='store_true', help="Include EOG channels in EEG data")
+    parser.add_argument("--use_mastoid", action='store_true', help="Include mastoid channels in EEG data")
 
     args = parser.parse_args()
 
