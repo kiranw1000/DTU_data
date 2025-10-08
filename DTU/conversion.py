@@ -106,6 +106,7 @@ def main(args):
                         print(f"Resampling EEG data to {args.resample_freq} Hz")
                     raw = raw.resample(args.resample_freq)
             if not args.use_eog:
+                print("Excluding EOG channels from EEG data")
                 raw.pick(picks='eeg', exclude = ["EXG1","EXG2"] if not args.use_mastoid else "bad")
             eeg_data = raw.get_data()
             # Populate mix file which specifies audio and EEG data correspondence
