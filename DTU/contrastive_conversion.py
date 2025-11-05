@@ -40,7 +40,7 @@ def interface_invariance(args):
             temp = max(min(temp, args.max_length), args.min_length)
             sample_length = temp if j+temp < time_to_sample else time_to_sample - j
             for subject, trial in subj_attn_pairs_to_trials[(k[0], v[0])].difference({k}):
-                output.append(["",k[0], k[1], trial, v[0], j, "", v[1], j, trial_to_audio_pairs[subject, trial][1], j, v[0], j, 1,0, sample_length])
+                output.append(["",k[0], k[1], trial, v[0], j, v[1], j, trial_to_audio_pairs[subject, trial][1], j, v[0], j, 1,0, sample_length])
             inc = max(spacing_distribution.normal(args.spacing_mean, args.spacing_std), .1)
             j += inc
             subbar.update(inc)
@@ -53,12 +53,12 @@ def interface_invariance(args):
             temp = max(min(temp, args.max_length), args.min_length)
             sample_length = temp if j+temp < time_to_sample else time_to_sample - j
             for subject, trial in subj_int_pairs_to_trials[(k[0], v[1])].difference({k}):
-                output.append(["",k[0], k[1], trial, v[0], j, "", v[1], j, v[1], j, trial_to_audio_pairs[subject, trial][0], j, 0, 0, sample_length])
+                output.append(["",k[0], k[1], trial, v[0], j, v[1], j, v[1], j, trial_to_audio_pairs[subject, trial][0], j, 0, 0, sample_length])
             inc = max(spacing_distribution.normal(args.spacing_mean, args.spacing_std), .1)
             j += inc
             subbar.update(inc)
         subbar.close()
-    output = pd.DataFrame(output, columns=["split", "subject_1", "trial_1", "trial_2", "tgt_audio_1", "tgt_start_1", "", "int_audio_1", "int_start_1", "int_audio_2", "int_start_2", "tgt_audio_2", "tgt_start_2", "type", "snr", "length"])
+    output = pd.DataFrame(output, columns=["split", "subject_1", "trial_1", "trial_2", "tgt_audio_1", "tgt_start_1", "int_audio_1", "int_start_1", "int_audio_2", "int_start_2", "tgt_audio_2", "tgt_start_2", "type", "snr", "length"])
     if args.randomized:
         output = output.sample(frac=1).reset_index(drop=True)
     test_count = int(args.test_split * output.shape[0])
@@ -72,7 +72,7 @@ def interface_invariance(args):
 
 def subject_invariance(args):
     mix = pd.read_csv(args.input_csv)
-    mix.columns = ["split", "subject", "trial", "tgt_audio", "tgt_start", "int_audio", "int_start", "snr", "length"]
+    mix.columns = ["split", "subject", "trial", "tgt_audio", "tgt_start", "", "int_audio", "int_start", "snr", "length"]
     trial_to_audio_pairs = {tuple([x[0],x[1]]): [x[2],x[3]] for x in set(mix[["subject", "trial", "tgt_audio","int_audio", "split"]].itertuples(index=False)) if x[4]=="train"}
     audio_pairs_to_trials = defaultdict(set)
     for k, v in trial_to_audio_pairs.items():
@@ -93,7 +93,7 @@ def subject_invariance(args):
             temp = max(min(temp, args.max_length), args.min_length)
             sample_length = temp if j+temp < time_to_sample else time_to_sample - j
             for subject, trial in audio_pairs_to_trials[tuple(v)].difference({k}):
-                output.append(["",k[0], k[1], v[0], j, "", v[1], j, subject, trial, trial_to_audio_pairs[subject, trial][0], j, 1, 0, sample_length])
+                output.append(["",k[0], k[1], v[0], j, v[1], j, subject, trial, trial_to_audio_pairs[subject, trial][0], j, 1, 0, sample_length])
             inc = max(spacing_distribution.normal(args.spacing_mean, args.spacing_std), .1)
             j += inc
             subbar.update(inc)
@@ -106,7 +106,7 @@ def subject_invariance(args):
             temp = max(min(temp, args.max_length), args.min_length)
             sample_length = temp if j+temp < time_to_sample else time_to_sample - j
             for subject, trial in subj_int_pairs_to_trials[(k[0], v[1])].difference({k}):
-                output.append(["",k[0], k[1], v[0], j, "", v[1], j, subject, trial, trial_to_audio_pairs[subject, trial][0], j, 0, 0, sample_length])
+                output.append(["",k[0], k[1], v[0], j, v[1], j, subject, trial, trial_to_audio_pairs[subject, trial][0], j, 0, 0, sample_length])
             inc = max(spacing_distribution.normal(args.spacing_mean, args.spacing_std), .1)
             j += inc
             subbar.update(inc)
