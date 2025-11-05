@@ -72,7 +72,7 @@ def interface_invariance(args):
 
 def subject_invariance(args):
     mix = pd.read_csv(args.input_csv)
-    mix.columns = ["split", "subject", "trial", "tgt_audio", "tgt_start", "", "int_audio", "int_start", "snr", "length"]
+    mix.columns = ["split", "subject", "trial", "tgt_audio", "tgt_start", "int_audio", "int_start", "snr", "length"]
     trial_to_audio_pairs = {tuple([x[0],x[1]]): [x[2],x[3]] for x in set(mix[["subject", "trial", "tgt_audio","int_audio", "split"]].itertuples(index=False)) if x[4]=="train"}
     audio_pairs_to_trials = defaultdict(set)
     for k, v in trial_to_audio_pairs.items():
@@ -111,7 +111,7 @@ def subject_invariance(args):
             j += inc
             subbar.update(inc)
         subbar.close()
-    output = pd.DataFrame(output, columns=["split", "subject_1", "trial_1", "tgt_audio_1", "tgt_start_1", "", "int_audio", "int_start", "subject_2", "trial_2", "tgt_audio_2", "tgt_start_2", "type", "snr", "length"])
+    output = pd.DataFrame(output, columns=["split", "subject_1", "trial_1", "tgt_audio_1", "tgt_start_1", "int_audio", "int_start", "subject_2", "trial_2", "tgt_audio_2", "tgt_start_2", "type", "snr", "length"])
     if args.randomized:
         output = output.sample(frac=1).reset_index(drop=True)
     test_count = int(args.test_split * output.shape[0])
