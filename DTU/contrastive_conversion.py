@@ -59,6 +59,7 @@ def interface_invariance(args):
             subbar.update(inc)
         subbar.close()
     output = pd.DataFrame(output, columns=["split", "subject_1", "trial_1", "trial_2", "tgt_audio_1", "tgt_start_1", "int_audio_1", "int_start_1", "int_audio_2", "int_start_2", "tgt_audio_2", "tgt_start_2", "type", "snr", "length"])
+    dtypes = {"subject_1": int, "trial_1":int, "trial_2":int}
     if args.randomized:
         output = output.sample(frac=1).reset_index(drop=True)
     test_count = int(args.test_split * output.shape[0])
@@ -70,6 +71,7 @@ def interface_invariance(args):
     print(f"{(output.length <= args.min_length).sum()} samples less than {args.min_length}")
     output = output.where(output.length > args.min_length).dropna()
     assert output.length.min() > args.min_length, f"Some samples are less than {args.min_length} seconds"
+    output = output.astype(dtypes)
     output.to_csv(args.output_csv, index=False)
     print(f"Created {len(output)} samples and saved to {args.output_csv}")
 
@@ -115,6 +117,7 @@ def subject_invariance(args):
             subbar.update(inc)
         subbar.close()
     output = pd.DataFrame(output, columns=["split", "subject_1", "trial_1", "tgt_audio_1", "tgt_start_1", "int_audio", "int_start", "subject_2", "trial_2", "tgt_audio_2", "tgt_start_2", "type", "snr", "length"])
+    dtypes = {"subject_1": int, "trial_1":int, "subject_2":int, "trial_2":int}
     if args.randomized:
         output = output.sample(frac=1).reset_index(drop=True)
     test_count = int(args.test_split * output.shape[0])
@@ -126,6 +129,7 @@ def subject_invariance(args):
     print(f"{(output.length <= args.min_length).sum()} samples less than {args.min_length}")
     output = output.where(output.length > args.min_length).dropna()
     assert output.length.min() > args.min_length, f"Some samples are less than {args.min_length} seconds"
+    output = output.astype(dtypes)
     output.to_csv(args.output_csv, index=False)
     print(f"Created {len(output)} samples and saved to {args.output_csv}")
 
