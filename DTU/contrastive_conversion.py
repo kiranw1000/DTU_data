@@ -67,6 +67,9 @@ def interface_invariance(args):
     output.loc[:train_count, "split"] = "train"
     output.loc[train_count:train_count+val_count, "split"] = "val"
     output.loc[train_count+val_count:, "split"] = "test"
+    print(f"{(output.length <= args.min_length).sum()} samples less than {args.min_length}")
+    output = output.where(output.length > args.min_length).dropna()
+    assert output.length.min() > args.min_length, f"Some samples are less than {args.min_length} seconds"
     output.to_csv(args.output_csv, index=False)
     print(f"Created {len(output)} samples and saved to {args.output_csv}")
 
@@ -120,6 +123,9 @@ def subject_invariance(args):
     output.loc[:train_count, "split"] = "train"
     output.loc[train_count:train_count+val_count, "split"] = "val"
     output.loc[train_count+val_count:, "split"] = "test"
+    print(f"{(output.length <= args.min_length).sum()} samples less than {args.min_length}")
+    output = output.where(output.length > args.min_length).dropna()
+    assert output.length.min() > args.min_length, f"Some samples are less than {args.min_length} seconds"
     output.to_csv(args.output_csv, index=False)
     print(f"Created {len(output)} samples and saved to {args.output_csv}")
 
