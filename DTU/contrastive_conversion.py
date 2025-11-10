@@ -48,7 +48,7 @@ def interface_invariance(args):
         # Negative samples: same subject and interference, different attended
         j = 0
         subbar = tqdm.tqdm(total=time_to_sample, desc=f"Sampling negative pairs for {k}", leave=False)
-        while j < time_to_sample:
+        while time_to_sample - j > args.min_length:
             temp = length_distribution.normal(args.sample_length_mean, args.sample_length_std)
             temp = max(min(temp, args.max_length), args.min_length)
             sample_length = temp if j+temp < time_to_sample else time_to_sample - j
@@ -101,7 +101,7 @@ def subject_invariance(args):
         # Negative samples: same interference and subject, different attended
         j = 0
         subbar = tqdm.tqdm(total=time_to_sample, desc=f"Sampling negative pairs for {k}", leave=False)
-        while j < time_to_sample:
+        while time_to_sample - j > args.min_length:
             temp = length_distribution.normal(args.sample_length_mean, args.sample_length_std)
             temp = max(min(temp, args.max_length), args.min_length)
             sample_length = temp if j+temp < time_to_sample else time_to_sample - j
