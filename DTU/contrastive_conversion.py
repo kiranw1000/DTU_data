@@ -9,12 +9,12 @@ import numpy as np
 def main(args):
     if args.mode == "subject_invariance":
         subject_invariance(args)
-    elif args.mode == "interface_invariance":
-        interface_invariance(args)
+    elif args.mode == "interference_invariance":
+        interference_invariance(args)
     else:
         raise ValueError(f"Unknown mode {args.mode}")
-    
-def interface_invariance(args):
+
+def interference_invariance(args):
     mix = pd.read_csv(args.input_csv)
     mix.columns = ["split", "subject", "trial", "tgt_audio", "tgt_start", "", "int_audio", "int_start", "snr", "length"]
     trial_to_audio_pairs = {tuple([x[0],x[1]]): [x[2],x[3]] for x in set(mix[["subject", "trial", "tgt_audio","int_audio", "split"]].itertuples(index=False)) if x[4]=="train"}
@@ -150,6 +150,6 @@ if __name__ == "__main__":
     hyperparams.add_argument("--val_split", type=float, default=.1, help="Number of subjects for validation")
     hyperparams.add_argument("--test_split", type=float, default=.15, help="Number of subjects for testing")
     parser.add_argument("--randomized", type=bool, default=True, help="Whether to randomize the order of the output samples")
-    parser.add_argument("--mode", type=str, choices=["subject_invariance", "interface_invariance"], default="subject_invariance", help="Mode of contrastive sample generation")
+    parser.add_argument("--mode", type=str, choices=["subject_invariance", "interference_invariance"], default="subject_invariance", help="Mode of contrastive sample generation")
     args = parser.parse_args()
     main(args)
